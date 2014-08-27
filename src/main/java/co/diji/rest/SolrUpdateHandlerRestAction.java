@@ -41,9 +41,11 @@ import org.elasticsearch.rest.BaseRestHandler;
 import org.elasticsearch.rest.RestChannel;
 import org.elasticsearch.rest.RestController;
 import org.elasticsearch.rest.RestRequest;
-import org.elasticsearch.rest.XContentThrowableRestResponse;
+//import org.elasticsearch.rest.XContentThrowableRestResponse;
 
 import co.diji.solr.SolrResponseWriter;
+import org.elasticsearch.rest.BytesRestResponse;
+import org.elasticsearch.rest.RestStatus;
 
 public class SolrUpdateHandlerRestAction extends BaseRestHandler {
 
@@ -172,8 +174,8 @@ public class SolrUpdateHandlerRestAction extends BaseRestHandler {
                 // some sort of error processing the xml input
                 try {
                     logger.error("Error processing xml input", e);
-                    channel.sendResponse(new XContentThrowableRestResponse(request, e));
-                } catch (IOException e1) {
+                    channel.sendResponse(new org.elasticsearch.rest.BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, e.getMessage()));
+                } catch (Exception e1) {
                     logger.error("Failed to send error response", e1);
                 }
             }
@@ -204,10 +206,11 @@ public class SolrUpdateHandlerRestAction extends BaseRestHandler {
                 }
             } catch (Exception e) {
                 // some sort of error processing the javabin input
+                // some sort of error processing the javabin input
                 try {
                     logger.error("Error processing javabin input", e);
-                    channel.sendResponse(new XContentThrowableRestResponse(request, e));
-                } catch (IOException e1) {
+                    channel.sendResponse(new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, e.getMessage()));
+                } catch (Exception e1) {
                     logger.error("Failed to send error response", e1);
                 }
             }
@@ -223,12 +226,12 @@ public class SolrUpdateHandlerRestAction extends BaseRestHandler {
                 public void onResponse(BulkResponse response) {
                     logger.info("Bulk request completed");
                     for (BulkItemResponse itemResponse : response) {
-                        if (itemResponse.failed()) {
+                        if (itemResponse.isFailed()) {
                             logger.error("Index request failed {index:{}, type:{}, id:{}, reason:{}}",
-                                    itemResponse.index(),
-                                    itemResponse.type(),
-                                    itemResponse.id(),
-                                    itemResponse.failure().message());
+                                    itemResponse.getIndex(),
+                                    itemResponse.getType(),
+                                    itemResponse.getId(),
+                                    itemResponse.getFailure());
                         }
                     }
                 }
@@ -316,8 +319,9 @@ public class SolrUpdateHandlerRestAction extends BaseRestHandler {
         // indexRequest.version(RestActions.parseVersion(request));
         // indexRequest.versionType(VersionType.fromString(request.param("version_type"),
         // indexRequest.versionType()));
-
-        indexRequest.percolate(request.param("percolate", null));
+        
+        //NOT support in newer versionof Elastic search 1.2?
+        //  indexRequest.percolate(request.param("percolate", null));
         indexRequest.opType(IndexRequest.OpType.INDEX);
 
         // TODO: force creation of index, do we need it?

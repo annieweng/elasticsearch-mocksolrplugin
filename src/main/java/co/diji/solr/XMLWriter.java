@@ -25,8 +25,8 @@ import org.apache.solr.common.util.XML;
 import java.io.Writer;
 import java.io.IOException;
 import java.util.*;
-
-import org.apache.lucene.document.Fieldable;
+import org.apache.lucene.document.Field;
+//import org.apache.lucene.document.Fieldable;
 import org.elasticsearch.common.joda.time.DateTime;
 import org.elasticsearch.common.joda.time.format.DateTimeFormat;
 import org.elasticsearch.common.joda.time.format.DateTimeFormatter;
@@ -153,7 +153,7 @@ final public class XMLWriter {
 
   private static final Comparator fieldnameComparator = new Comparator() {
     public int compare(Object o, Object o1) {
-      Fieldable f1 = (Fieldable)o; Fieldable f2 = (Fieldable)o1;
+      Field f1 = (Field)o; Field f2 = (Field)o1;
       int cmp = f1.name().compareTo(f2.name());
       return cmp;
       // note - the sort is stable, so this should not have affected the ordering

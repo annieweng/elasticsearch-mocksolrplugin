@@ -93,6 +93,8 @@ public class SolrSearchHandlerRestAction extends BaseRestHandler {
 	 * org.elasticsearch.rest.RestHandler#handleRequest(org.elasticsearch.rest.RestRequest, org.elasticsearch.rest.RestChannel)
 	 */
 	public void handleRequest(final RestRequest request, final RestChannel channel) {
+            
+                logger.info("Solr handle Request"+ request.uri());
 		// Get the parameters
 		final Map<String, List<String>> params = parseUriParams(request.uri());
 
@@ -116,8 +118,9 @@ public class SolrSearchHandlerRestAction extends BaseRestHandler {
 			public void onFailure(Throwable e) {
 				try {
 					logger.error("Error processing executing search", e);
-					channel.sendResponse(new XContentThrowableRestResponse(request, e));
-				} catch (IOException e1) {
+                                         channel.sendResponse(new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, e.getMessage()));
+				
+				} catch (Exception e1) {
 					logger.error("Failed to send failure response", e1);
 				}
 			}
@@ -212,8 +215,8 @@ public class SolrSearchHandlerRestAction extends BaseRestHandler {
         QueryBuilder queryBuilder = fqDsl ? QueryBuilders.wrapperQuery(fqs.get(0)) : QueryBuilders.queryString(fqs.get(0));
 				filterBuilder = queryFilter(queryBuilder);
 			}
-
-			searchSourceBuilder.filter(filterBuilder);
+                        searchSourceBuilder.postFilter(filterBuilder);
+			//searchSourceBuilder.filter(filterBuilder);
 		}
 
 		// handle highlighting
@@ -290,13 +293,14 @@ public class SolrSearchHandlerRestAction extends BaseRestHandler {
     // get index and type we want to search against
     final String index = request.hasParam("index") ? request.param("index") : "solr";
     final String type = request.hasParam("type") ? request.param("type") : "docs";
-
+    
 		// Build the search Request
-		String[] indices = RestActions.splitIndices(index);
+		//String[] indices = RestActions.splitIndices(index);
+                String[] indices = Strings.splitStringByCommaToArray(index);
 		SearchRequest searchRequest = new SearchRequest(indices);
 		searchRequest.extraSource(searchSourceBuilder);
-		searchRequest.types(RestActions.splitTypes(type));
-
+                //searchRequest.types(RestActions.splitTypes(type));
+                searchRequest.types(Strings.splitStringByCommaToArray(type));
 		return searchRequest;
 	}
 
@@ -338,7 +342,7 @@ public class SolrSearchHandlerRestAction extends BaseRestHandler {
 		// generate response header
 		NamedList<Object> responseHeader = new SimpleOrderedMap<Object>();
 		responseHeader.add("status", 0);
-		responseHeader.add("QTime", response.tookInMillis());
+		responseHeader.add("QTime", response.getTookInMillis());
 
 		// echo params in header
 		NamedList<Object> solrParams = new SimpleOrderedMap<Object>();
@@ -472,21 +476,21 @@ public class SolrSearchHandlerRestAction extends BaseRestHandler {
 			NamedList<Object> queryFacets = new SimpleOrderedMap<Object>();
 
 			// loop though all the facets populating the NamedLists we just created
-			Iterator<Facet> facetIter = response.facets().iterator();
+			Iterator<Facet> facetIter = response.getFacets().iterator();
 			while (facetIter.hasNext()) {
 				Facet facet = facetIter.next();
-				if (facet.type().equals(TermsFacet.TYPE)) {
+				if (facet.getType().equals(TermsFacet.TYPE)) {
 					// we have term facet, create NamedList to store terms
 					TermsFacet termFacet = (TermsFacet) facet;
 					NamedList<Object> termFacetObj = new SimpleOrderedMap<Object>();
-					for (TermsFacet.Entry tfEntry : termFacet.entries()) {
-						termFacetObj.add(tfEntry.term(), tfEntry.count());
+					for (TermsFacet.Entry tfEntry : termFacet.getEntries()) {
+						termFacetObj.add(tfEntry.getTerm().string(), tfEntry.getCount());
 					}
 
 					termFacets.add(facet.getName(), termFacetObj);
-				} else if (facet.type().equals(QueryFacet.TYPE)) {
+				} else if (facet.getType().equals(QueryFacet.TYPE)) {
 					QueryFacet queryFacet = (QueryFacet) facet;
-					queryFacets.add(queryFacet.getName(), queryFacet.count());
+					queryFacets.add(queryFacet.getName(), queryFacet.getCount());
 				}
 			}
 

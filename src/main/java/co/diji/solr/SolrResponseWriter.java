@@ -12,6 +12,7 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.rest.BytesRestResponse;
 import org.elasticsearch.rest.RestChannel;
 import org.elasticsearch.rest.RestRequest;
+import org.elasticsearch.rest.RestStatus;
 
 /**
  * Class to handle sending responses to Solr clients.  
@@ -55,21 +56,22 @@ public class SolrResponseWriter {
 	 */
 	private void writeJavaBinResponse(NamedList<Object> obj, RestChannel channel) {
 		ByteArrayOutputStream bo = new ByteArrayOutputStream();
-
+                RestStatus status=RestStatus.OK;
 		// try to marshal the data
 		try {
 			new JavaBinCodec().marshal(obj, bo);
 		} catch (IOException e) {
+                    status=RestStatus.INTERNAL_SERVER_ERROR;
 			logger.error("Error writing JavaBin response", e);
 		}
 
 		// send the response
-		channel.sendResponse(new BytesRestResponse(bo.toByteArray(), contentTypeOctet));
+		channel.sendResponse(new BytesRestResponse(status , contentTypeOctet, bo.toByteArray()));
 	}
 
 	private void writeXmlResponse(NamedList<Object> obj, RestChannel channel) {
 		Writer writer = new StringWriter();
-
+            RestStatus status=RestStatus.OK;
 		// try to serialize the data to xml
 		try {
 			writer.write(XMLWriter.XML_START1);
@@ -87,10 +89,15 @@ public class SolrResponseWriter {
 			writer.write("\n</response>\n");
 			writer.close();
 		} catch (IOException e) {
+                    status=RestStatus.INTERNAL_SERVER_ERROR;
 			logger.error("Error writing XML response", e);
 		}
 
 		// send the response
-		channel.sendResponse(new BytesRestResponse(writer.toString().getBytes(), contentTypeXml));
+		channel.sendResponse(new BytesRestResponse(status, contentTypeXml, writer.toString().getBytes()));
+            
+		
+		
+                
 	}
 }
